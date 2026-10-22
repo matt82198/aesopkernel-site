@@ -7,5 +7,9 @@
   },
   "assets": {
     "directory": "."
-  }
+  },
+  "routes": [
+    { "pattern": "aesopkernel.ai", "custom_domain": true },
+    { "pattern": "www.aesopkernel.ai", "custom_domain": true }
+  ]
 }
