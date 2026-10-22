@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aesop Kernel</title>
+<meta name="description" content="Aesop Kernel is a multi-agent orchestration kernel for autonomous software development. A kernel, not a harness: it refuses what it cannot verify.">
+<meta name="theme-color" content="#0a0c0f">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<script src="script.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="wrap bar">
+    <a class="brand" href="#top">Aesop Kernel</a>
+    <nav aria-label="Primary">
+      <a href="https://github.com/matt82198/aesop">GitHub</a>
+      <a href="https://www.npmjs.com/package/@matt82198/aesop">npm</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero" id="top">
+  <div class="wrap">
+    <p class="eyebrow">Multi-agent orchestration kernel for autonomous software development</p>
+    <h1>Aesop Kernel</h1>
+    <p class="thesis"><strong>A kernel, not a harness.</strong> It owns the boundary between the model and your codebase, enforces one invariant (fail-closed verification), and refuses what it cannot verify rather than steering the model.</p>
+    <p class="sub">Crash-only by design: workers are stateless, state lives in git + SQLite + durable files, and restart is the only recovery path.</p>
+
+    <div class="install">
+      <span class="prompt" aria-hidden="true">$</span>
+      <code id="install-cmd">npm i -g @matt82198/aesop</code>
+      <button type="button" class="copy" data-copy="install-cmd">Copy</button>
+    </div>
+    <p class="note" id="copy-status" aria-live="polite"></p>
+
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/matt82198/aesop">View on GitHub</a>
+      <a class="btn" href="https://www.npmjs.com/package/@matt82198/aesop">npm package</a>
+    </div>
+
+    <dl class="stats">
+      <div><dt>0.11.0</dt><dd>released 2026-10-22</dd></div>
+      <div><dt>18</dt><dd>PRs merged since v0.10.4 (#1264 to #1284)</dd></div>
+      <div><dt>16</dt><dd>first-commit shas in the provenance record</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section id="harness-vs-kernel" aria-labelledby="h-hk" class="reveal">
+  <div class="wrap">
+    <p class="kicker">01 / Harness vs kernel</p>
+    <h2 id="h-hk">Two ways to put a model in the loop.</h2>
+    <div class="contrast">
+      <article class="col harness">
+        <h3>The harness</h3>
+        <ul>
+          <li>A rigid controller of the model.</li>
+          <li>Fails open.</li>
+        </ul>
+      </article>
+      <article class="col kernel">
+        <h3>The kernel</h3>
+        <ul>
+          <li>The model runs in user space, with tools.</li>
+          <li>The kernel owns the boundary: capabilities, permissions, and honest observation of what happened.</li>
+          <li>One invariant: fail closed. It refuses what it cannot verify.</li>
+          <li>An agent that cannot prove its state is terminated, not trusted.</li>
+          <li>It frees the model to reason and act instead of constraining it with rigid rules.</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="receipts" aria-labelledby="h-rc" class="reveal">
+  <div class="wrap">
+    <p class="kicker">02 / The receipts loop</p>
+    <h2 id="h-rc">An iteration counts only with receipts.</h2>
+    <p class="lead">An iteration counts only when it leaves receipts that a gate can check. A lane that reports success without a receipt a gate can verify has not passed.</p>
+    <ol class="steps">
+      <li>
+        <strong>Dispatch</strong>
+        <p>An orchestrator dispatches parallel Haiku workers in isolated worktrees.</p>
+      </li>
+      <li>
+        <strong>Gate</strong>
+        <p>Fail-closed secret scan (pre-push), re-run of the exact CI gate (no mock), adversarial review (default-on).</p>
+      </li>
+      <li>
+        <strong>Receipt</strong>
+        <p><code>tools/emit_receipt.py</code> signs a record of which local checks ran, for a gate to read.</p>
+      </li>
+      <li>
+        <strong>Merge</strong>
+        <p><code>tools/auto_merge.py</code> merges green PRs in batches and fixes conflicts by default.</p>
+      </li>
+    </ol>
+    <p class="caption">The receipt gate is still in measurement mode, so the hosted receipt check is not required yet.</p>
+  </div>
+</section>
+
+<section id="primitives" aria-labelledby="h-pr" class="reveal">
+  <div class="wrap">
+    <p class="kicker">03 / Primitives</p>
+    <h2 id="h-pr">The trust primitives, and where each one lives.</h2>
+    <p class="lead">Each primitive is named in the provenance record. Some live in private repositories; the path is the file inside that repository.</p>
+    <div class="cards">
+      <article class="card">
+        <h3>Hash-chained event store</h3>
+        <p>Each event carries a sha256 prev field over the previous event, so the store is hash-chained.</p>
+        <code>tools/event_store/store.py</code>
+      </article>
+      <article class="card">
+        <h3>Signed receipts</h3>
+        <p>Ed25519 signed receipts that verify offline.</p>
+        <code>tools/emit_receipt.py, tools/verify_receipt.py</code>
+      </article>
+      <article class="card">
+        <h3>Crash-only lanes</h3>
+        <p>A lane that fails is KILLED, never corrected.</p>
+        <code>LANE-CONTRACT.md</code>
+      </article>
+      <article class="card">
+        <h3>Claim binding</h3>
+        <p>A claim that something merged or is green needs a same-turn evidence read.</p>
+        <code>hooks/claim-binding.mjs (claude-config, private)</code>
+      </article>
+      <article class="card">
+        <h3>Ledgers</h3>
+        <p>Every lane action leaves a row. Lane reports are written to disk so compaction cannot lose them.</p>
+        <code>hooks/lane-ledger.mjs, hooks/handback-ledger.mjs, hooks/verdict-ledger.mjs, dispatch_ledger.py</code>
+      </article>
+      <article class="card">
+        <h3>Deny, not rewrite</h3>
+        <p>A subagent dispatch is denied, not rewritten.</p>
+        <code>hooks/force-haiku-subagents.mjs</code>
+      </article>
+      <article class="card">
+        <h3>Checkpoint before compact</h3>
+        <p>State is written to disk before context is compacted.</p>
+        <code>hooks/checkpoint-before-compact.mjs</code>
+      </article>
+      <article class="card">
+        <h3>Per-project event stores</h3>
+        <p>Projections render pending items, rulings by goal and checkpoints across per-project stores.</p>
+        <code>docs/plans/PER-PROJECT-EVENT-STORES.md</code>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="provenance" aria-labelledby="h-pv" class="reveal">
+  <div class="wrap">
+    <p class="kicker">04 / Provenance</p>
+    <h2 id="h-pv">A dated record, shipped with the package.</h2>
+    <blockquote class="quote">
+      This file is a dated record of an independent developer's contributions, published because large language models absorb such work into training data and later outputs without attribution. It is not an argument about credit or theft, and it names no competitor or product.
+      <cite>docs/PROVENANCE.md, aesop v0.11.0</cite>
+    </blockquote>
+    <p class="lead">The npm tarball carries the record. <code>docs/PROVENANCE.md</code> and <code>docs/PROVENANCE.receipt.json</code> are listed in the <code>files</code> field of <code>package.json</code>, so they ship inside the v0.11.0 tarball.</p>
+    <p class="lead">The Ed25519 receipt verifies offline. A VALID result prints <code>provenance receipt VALID</code>:</p>
+    <pre><code>python -I tools/emit_provenance_receipt.py --verify docs/PROVENANCE.receipt.json --subject docs/PROVENANCE.md --keyring tools/receipt_pubkeys</code></pre>
+    <p class="lead">A VALID result means the content of <code>docs/PROVENANCE.md</code> is the content the key holder signed. It does not check the commit shas against the repositories; that check needs read access to each repository.</p>
+    <div class="links">
+      <a class="btn" href="https://github.com/matt82198/aesop/blob/v0.11.0/docs/PROVENANCE.md">Read docs/PROVENANCE.md on GitHub</a>
+      <a class="btn" href="https://github.com/matt82198/aesop/releases/tag/v0.11.0">v0.11.0 release</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap row">
+    <div>
+      <p>Built by Matt Culliton.</p>
+      <p>README status notice: Aesop Kernel is mid-way through a major event-based overhaul whose goal is restoring fully fail-closed hooks.</p>
+    </div>
+    <nav aria-label="Footer">
+      <a href="https://github.com/matt82198/aesop">GitHub</a>
+      <a href="https://www.npmjs.com/package/@matt82198/aesop">npm</a>
+      <a href="https://github.com/matt82198/aesop/releases/tag/v0.11.0">v0.11.0</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>
